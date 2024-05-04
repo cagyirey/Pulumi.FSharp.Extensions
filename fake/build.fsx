@@ -1,12 +1,14 @@
 #r "paket:
-nuget FSharp.Core 4.7.2
-nuget Fake.DotNet.Cli
-nuget Fake.IO.FileSystem
-nuget Fake.BuildServer.TeamFoundation
-nuget Fake.Core.CommandLineParsing
+framework: net6.0
+nuget FSharp.Core ~> 6
+nuget Fake.DotNet.Cli ~> 6
+nuget Fake.IO.FileSystem ~> 6
+nuget Fake.BuildServer.TeamFoundation ~> 6
+nuget Fake.Core.CommandLineParsing ~> 6
 nuget Newtonsoft.Json
-nuget Fake.Core.Xml
-nuget Fake.Core.Target //"
+nuget Fake.Core.Xml ~> 6
+nuget Fake.Core.Target ~> 6 "
+
 #load ".fake/build.fsx/intellisense.fsx"
 #nowarn "52"
 open Fake.IO.Globbing.Operators
@@ -20,7 +22,7 @@ open Fake.Core
 open System.IO
 open Fake.IO
 open System
-
+open System
 (*
     Usage:
 
@@ -29,6 +31,7 @@ open System
     dotnet fake run build.fsx All     -t ForceRegeneration # Install and ForceRegeneration for all providers
     dotnet fake run build.fsx All     -t Build             # Install, ForceRegeneration and Build for all providers
 *)
+
 
 BuildServer.install [ TeamFoundation.Installer ]
 
@@ -58,7 +61,7 @@ let getProvider args =
 
 let getProviders =
     function
-    | "*"   -> DirectoryInfo.ofPath "." |>
+    | "*"   -> DirectoryInfo.ofPath rootDirectory |>
                DirectoryInfo.getSubDirectories |>
                Array.filter (fun d -> d.Name.StartsWith("Pulumi.FSharp.") &&
                                       not <| d.Name.EndsWith(".Test") &&

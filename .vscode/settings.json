@@ -1,0 +1,7 @@
+{
+  "circleci.persistedProjectSelection": [],
+  "FSharp.fsiExtraParameters": [
+    "--compilertool:~/.dotnet/tools/.store/paket/8.0.3/paket/8.0.3/tools/netcoreapp2.1/any/",
+    "--langversion:preview"
+  ],
+}

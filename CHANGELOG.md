@@ -6,10 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2017-03-17
-First release
+## [3.1.5] - 2024-05-31
+
+Updated the project to use modern build tooling.
+
+### Fixed
+- Numbers in provider names (e.g. `auth0`) no longer break the plugin.
+- GCP resources that use slashes as namespacing (e.g. `gcp:privilegedaccessmanager/entitlement`) no longer break the plugin.
 
 ### Added
-- This release already has lots of features
-
-[0.1.0]: https://github.com/cagyirey/Pulumi.FSharp.Extensions/releases/tag/v0.1.0
+- DigitalOcean provider
+- Auth0 provider
+- Support for Kubernetes `ConfigFile` and `ConfigGroup` types

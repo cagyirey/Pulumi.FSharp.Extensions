@@ -26,13 +26,14 @@ group Main
   nuget Pulumi.Command
   nuget Pulumi.DigitalOcean
   nuget Pulumi.Docker
-  nuget Pulumi.FSharp
   nuget Pulumi.Gcp
   nuget Pulumi.Kubernetes
   nuget Pulumi.Random
   nuget Pulumi.Tls
+
+  nuget Pulumi.FSharp.Core
+  
   nuget Microsoft.SourceLink.GitHub copy_local: true
-  nuget Expecto
   nuget YoloDev.Expecto.TestSdk
   nuget Microsoft.NET.Test.Sdk
   nuget altcover
@@ -46,16 +47,15 @@ group Build
   nuget Fake.IO.FileSystem
   nuget Fake.Core.Target
   nuget Fake.Core.ReleaseNotes
-  nuget FAKE.Core.Environment
+  nuget Fake.Core.Environment
   nuget Fake.DotNet.Cli
-  nuget FAKE.Core.Process
+  nuget Fake.Core.Process
   nuget Fake.DotNet.AssemblyInfoFile
   nuget Fake.Tools.Git
   nuget Fake.DotNet.Paket
   nuget Fake.Api.GitHub
   nuget Fake.BuildServer.GitHubActions
   nuget Argu
-  nuget Octokit
   nuget Microsoft.Build 17.3.2
   nuget Microsoft.Build.Framework 17.3.2
   nuget Microsoft.Build.Tasks.Core 17.3.2

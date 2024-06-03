@@ -1,6 +1,5 @@
 group Myriad
-    FSharp.Core
-    FSharp.Data
-    FSharp.Text.RegexProvider
-    Myriad.Sdk
-    Paket.Core
+FSharp.Data
+FSharp.Text.RegexProvider
+Myriad.Sdk
+Paket.Core

@@ -474,8 +474,17 @@ let createTypes (schema : JsonValue) =
         | _                  -> pulumiProviderName |> toPascalCase
     
     let folder modules resourceProvider resourceBuilders =
-        let resourceProviderNamespace =
-            namespaces[resourceProvider]
+
+        let ns :: subns = 
+            match pulumiProviderName with
+            // GCP is the only provider that seems to use inconsistent namespacing/resource provider namnes
+            // ex: `gcp:privilegedaccessmanager/entitlement` belongs to `PrivilegedAccessManager`
+            | "gcp" -> 
+                String.split '/' resourceProvider
+                |> Array.toList
+            | _ -> [resourceProvider]
+
+        let resourceProviderNamespace = namespaces[ns]
         
         let openNamespace =
             resourceProviderNamespace |>
@@ -484,9 +493,12 @@ let createTypes (schema : JsonValue) =
                 // Kubernetes is the only provider which overrides empty namespace with "Provider"
                 match pulumiProviderName with
                 | "kubernetes" -> namespaces[""]
-                | _            -> None) |>
-            Option.map (fun rpn -> $"{cloudProviderNamespace}.{rpn}") |>
-            Option.defaultValue cloudProviderNamespace
+                | _            -> None)
+            |> Option.map (fun rpn ->
+                    match subns with
+                    | [] -> $"{cloudProviderNamespace}.{rpn}"
+                    | subns -> $"""{cloudProviderNamespace}.{String.Join(".", subns)}.{rpn}""")
+            |> Option.defaultValue cloudProviderNamespace
         
         let typesModule =
             typeBuilders |>

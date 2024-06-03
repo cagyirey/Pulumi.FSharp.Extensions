@@ -31,9 +31,6 @@
   </Target>
   <Import Project="../../src/Pulumi.FSharp.Myriad/build/Pulumi.FSharp.Myriad.InTest.props" />
   <ItemGroup>
-    <!-- This is required only to force build of the plugin -->
-    <ProjectReference Include="../../src/Pulumi.FSharp.Myriad/Pulumi.FSharp.Myriad.fsproj" PrivateAssets="All" />
-    <ProjectReference Include="../../src/Pulumi.FSharp.Core/Pulumi.FSharp.Core.fsproj" PrivateAssets="All" />
     <Compile Include="Myriad.fs" />
     <Compile Include="Generated.fs">
       <MyriadFile>Myriad.fs</MyriadFile>

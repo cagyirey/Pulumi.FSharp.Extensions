@@ -116,6 +116,7 @@ let watchDocsDir =
     temp
     </> "watch-docs"
 
+
 let gitOwner = "cagyirey"
 let gitRepoName = "Pulumi.FSharp.Extensions"
 
@@ -151,6 +152,8 @@ let enableCodeCoverage = environVarAsBoolOrDefault "ENABLE_COVERAGE" false
 let githubToken = Environment.environVarOrNone "GITHUB_TOKEN"
 
 let nugetToken = Environment.environVarOrNone "GITHUB_TOKEN" // "NUGET_TOKEN"
+
+let commitHash = Environment.environVarOrNone "GITHUB_SHA"
 
 //-----------------------------------------------------------------------------
 // Helpers
@@ -207,6 +210,10 @@ let failOnWrongBranch () =
 
 
 module PulumiExtensions =
+
+    let getProviderName projectFile =
+        (FileInfo projectFile).Name["Pulumi.FSharp.".Length .. ^".fsproj".Length]
+
     let getProviderVersion projectFile =
         let projectFile = FileInfo projectFile
 
@@ -220,8 +227,12 @@ module PulumiExtensions =
 
         let paketDeps = Paket.Dependencies.Locate projectFile.DirectoryName
 
-        paketDeps.GetInstalledVersion $"Pulumi.{provider}"
-        |> Option.get
+        let version =
+            paketDeps.GetInstalledVersion $"Pulumi.{provider}"
+            |> Option.get
+            |> SemVer.parse
+
+        version.Normalize()
 
 
 module dotnet =
@@ -395,12 +406,10 @@ let deleteChangelogBackupFile _ =
     if String.isNotNullOrEmpty Changelog.changelogBackupFilename then
         Shell.rm Changelog.changelogBackupFilename
 
-let buildProviders ctx =
-
-    !!providersGlob
-    |> Seq.iter (fun provider ->
+let buildProvider projectFile =
+    fun (ctx: TargetParameter) ->
         let args = [
-            $"/p:PackageVersion={PulumiExtensions.getProviderVersion provider}"
+            $"/p:VersionPrefix={PulumiExtensions.getProviderVersion projectFile}"
             //"/p:NoRegenerate=true"
             "--no-restore"
         ]
@@ -415,12 +424,12 @@ let buildProviders ctx =
                         |> DotNet.Options.withAdditionalArgs args
 
             })
-            provider
-    )
+            projectFile
+
 
 let dotnetBuild ctx =
     let args = [
-        sprintf "/p:PackageVersion=%s" latestEntry.NuGetVersion
+        sprintf "/p:VersionPrefix=%s" latestEntry.NuGetVersion
         //"/p:NoRegenerate=true"
         "--no-restore"
     ]
@@ -487,16 +496,14 @@ let dotnetTest ctx =
     ]
 
     DotNet.test
-        (fun c ->
-
-            {
-                c with
-                    MSBuildParams = disableBinLog c.MSBuildParams
-                    Configuration = configuration (ctx.Context.AllExecutingTargets)
-                    Common =
-                        c.Common
-                        |> DotNet.Options.withAdditionalArgs args
-            })
+        (fun c -> {
+            c with
+                MSBuildParams = disableBinLog c.MSBuildParams
+                Configuration = configuration (ctx.Context.AllExecutingTargets)
+                Common =
+                    c.Common
+                    |> DotNet.Options.withAdditionalArgs args
+        })
         sln
 
 let generateCoverageReport _ =
@@ -622,26 +629,36 @@ let generateAssemblyInfo _ =
                 attributes
     )
 
-let packProviders (ctx: TargetParameter) =
 
-    !!providersGlob
-    |> Seq.iter (fun provider ->
+let packProvider projectFile =
+    fun (ctx: TargetParameter) ->
+        let args = [ $"/p:VersionPrefix={PulumiExtensions.getProviderVersion projectFile}" ]
+
         DotNet.pack
-            (fun c -> {
-                c with
+            (fun (c: DotNet.PackOptions) -> {
+                c.WithCommon(DotNet.Options.withAdditionalArgs args) with
+                    NoBuild = true
                     MSBuildParams = disableBinLog c.MSBuildParams
                     Configuration = configuration (ctx.Context.AllExecutingTargets)
                     OutputPath = Some distDir
+                    VersionSuffix =
+                        // only use a version suffix on non-primary branches
+                        Option.filter
+                            (fun _ ->
+                                Git.Information.getBranchName ""
+                                <> releaseBranch
+                            )
+                            commitHash
+
             })
-            provider
-    )
+            projectFile
 
 let dotnetPack ctx =
     // Get release notes with properly-linked version number
     let releaseNotes = Changelog.mkReleaseNotes changelog latestEntry gitHubRepoUrl
 
     let args = [
-        $"/p:PackageVersion={latestEntry.NuGetVersion}"
+        $"/p:VersionPrefix={latestEntry.NuGetVersion}"
         $"/p:PackageReleaseNotes=\"{releaseNotes}\""
     ]
 
@@ -650,10 +667,17 @@ let dotnetPack ctx =
         DotNet.pack
             (fun c -> {
                 c with
-                    BuildBasePath = Some srcDir
                     MSBuildParams = disableBinLog c.MSBuildParams
                     Configuration = configuration (ctx.Context.AllExecutingTargets)
                     OutputPath = Some distDir
+                    NoBuild = true
+                    VersionSuffix =
+                        Option.filter
+                            (fun _ ->
+                                Git.Information.getBranchName ""
+                                <> releaseBranch
+                            )
+                            commitHash
                     Common =
                         c.Common
                         |> DotNet.Options.withAdditionalArgs args
@@ -793,7 +817,7 @@ let initTargets () =
     Target.createBuildFailure "RevertChangelog" revertChangelog // Do NOT put this in the dependency chain
     Target.createFinal "DeleteChangelogBackupFile" deleteChangelogBackupFile // Do NOT put this in the dependency chain
     Target.create "DotnetBuild" dotnetBuild
-    Target.create "BuildProviders" buildProviders
+    Target.create "BuildProviders" ignore
     Target.create "FSharpAnalyzers" fsharpAnalyzers
     Target.create "DotnetTest" dotnetTest
     Target.create "GenerateCoverageReport" generateCoverageReport
@@ -801,7 +825,7 @@ let initTargets () =
     Target.create "WatchTests" watchTests
     Target.create "GenerateAssemblyInfo" generateAssemblyInfo
     Target.create "DotnetPack" dotnetPack
-    Target.create "PackProviders" packProviders
+    Target.create "PackProviders" ignore
     Target.create "SourceLinkTest" sourceLinkTest
     Target.create "PublishToNuGet" publishToNuget
     Target.create "GitRelease" gitRelease
@@ -814,6 +838,27 @@ let initTargets () =
     Target.create "BuildDocs" buildDocs
     Target.create "WatchDocs" watchDocs
 
+    !!providersGlob
+    |> Seq.iter (fun projectFile ->
+        let providerName = PulumiExtensions.getProviderName projectFile
+
+        Target.create $"BuildProvider.{providerName}" (buildProvider projectFile)
+        Target.create $"PackProvider.{providerName}" (packProvider projectFile)
+
+        $"BuildProvider.{providerName}"
+        ==>! $"PackProvider.{providerName}"
+
+        "DotnetRestore"
+        ==>! $"BuildProvider.{providerName}"
+
+        $"BuildProvider.{providerName}"
+        ==>! "BuildProviders"
+
+        $"PackProvider.{providerName}"
+        ==>! "PackProviders"
+
+    )
+
     //-----------------------------------------------------------------------------
     // Target Dependencies
     //-----------------------------------------------------------------------------
@@ -825,7 +870,7 @@ let initTargets () =
     ?=>! "DotnetRestore"
 
     "Clean"
-    ==>! "PackProviders"
+    ==>! "DotnetPack"
 
     // Only call GenerateAssemblyInfo if GitRelease was in the call chain
     // Ensure GenerateAssemblyInfo is called after DotnetRestore and before DotnetBuild
@@ -854,7 +899,6 @@ let initTargets () =
     "BuildProviders"
     ==>! "BuildDocs"
 
-
     "BuildProviders"
     ==>! "WatchDocs"
 
@@ -867,16 +911,20 @@ let initTargets () =
     ==> "GitRelease"
     ==>! "Release"
 
+    "DotnetRestore"
+    ==> "BuildProviders"
+    ==> "PackProviders"
+    ==> "PublishToNuGet"
+    // ==> "GitHubRelease"
+    ==>! "Publish"
 
     "DotnetRestore"
     =?> ("CheckFormatCode", isCI.Value)
     ==> "DotnetBuild"
-    ==> "BuildProviders"
     ==> "DotnetTest"
     ==> "DotnetPack"
-    ==> "PackProviders"
     ==> "PublishToNuGet"
-    ==> "GitHubRelease"
+    // ==> "GitHubRelease"
     ==>! "Publish"
 
     "DotnetRestore"

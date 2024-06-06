@@ -845,6 +845,9 @@ let initTargets () =
         Target.create $"BuildProvider.{providerName}" (buildProvider projectFile)
         Target.create $"PackProvider.{providerName}" (packProvider projectFile)
 
+        "Clean"
+        ==>! $"PackProvider.{providerName}"
+
         "DotnetBuild"
         ==> $"BuildProvider.{providerName}"
         ==>! $"PackProvider.{providerName}"

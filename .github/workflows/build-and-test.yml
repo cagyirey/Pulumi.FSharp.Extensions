@@ -1,4 +1,4 @@
-name: .NET Publish
+name: .NET Build and Test
 
 on:
   pull_request:

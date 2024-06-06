@@ -8,8 +8,6 @@
     <Title>$(MSBuildProjectName)</Title>
     <RepositoryUrl>https://github.com/UnoSD/Pulumi.FSharp.Extensions</RepositoryUrl>
     <PackageTags>fsharp pulumi command</PackageTags>
-    <Company>Stefano d'Antonio (UnoSD)</Company>
-    <Authors>Stefano d'Antonio (UnoSD)</Authors>
     <NoWarn>NU1605,NU1608,FS0058,FS0044</NoWarn>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>

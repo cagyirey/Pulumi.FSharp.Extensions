@@ -16,7 +16,7 @@ group Main
   storage: none
 
   nuget FSharp.Core ~> 8
-  nuget Myriad.Sdk 0.8.1
+  nuget Myriad.Sdk 0.8.1 copy_local: true
 
   nuget Pulumi.Aws
   nuget Pulumi.Auth0

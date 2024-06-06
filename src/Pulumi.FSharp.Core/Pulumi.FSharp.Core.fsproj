@@ -2,14 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <Description>F# computational expressions to reduce boilerplate in Pulumi code</Description>
-    <Copyright>Copyright 2020</Copyright>
-    <PackageProjectUrl>https://github.com/UnoSD/Pulumi.FSharp.Extensions</PackageProjectUrl>
-    <Title>$(MSBuildProjectName)</Title>
-    <RepositoryUrl>https://github.com/UnoSD/Pulumi.FSharp.Extensions</RepositoryUrl>
     <PackageTags>fsharp pulumi azure</PackageTags>
-    <Company>Stefano d'Antonio (UnoSD)</Company>
-    <Authors>Stefano d'Antonio (UnoSD)</Authors>
     <PackageVersion>3.1.4</PackageVersion>
     <NoWarn>NU1605,NU1608</NoWarn>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

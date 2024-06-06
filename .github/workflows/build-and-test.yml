@@ -1,4 +1,4 @@
-name: .NET Publish
+name: .NET Build and Test
 
 on:
   pull_request:
@@ -18,12 +18,6 @@ jobs:
           global-json-file: global.json
           dotnet-version: |
             8.x
-      - name: Build Pulumi.FSharp.Extensions
-        env:
-          FAKE_DETAILED_ERRORS: true
-          ENABLE_COVERAGE: false # AltCover doesn't work with Release builds, reports lower coverage than actual
-        run: |
-          ./build.sh DotnetBuild
       - name: Build providers
         env:
           FAKE_DETAILED_ERRORS: true

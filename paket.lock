@@ -54,7 +54,7 @@ NUGET
       Microsoft.TestPlatform.ObjectModel (>= 17.10)
       Newtonsoft.Json (>= 13.0.1)
     Mono.Cecil (0.11.5)
-    Myriad.Sdk (0.8.1)
+    Myriad.Sdk (0.8.1) - copy_local: true
     Newtonsoft.Json (13.0.3)
     OneOf (3.0.271)
     Pulumi (3.63.1)
@@ -71,8 +71,6 @@ NUGET
     Pulumi.Auth0 (3.3.1)
       Pulumi (>= 3.60)
     Pulumi.Aws (6.33.1)
-      Pulumi (>= 3.63.1)
-    Pulumi.Aws (6.38)
       Pulumi (>= 3.63.1)
     Pulumi.Azure (5.79)
       Pulumi (>= 3.63.1)

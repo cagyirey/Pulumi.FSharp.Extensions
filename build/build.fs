@@ -845,7 +845,8 @@ let initTargets () =
         Target.create $"BuildProvider.{providerName}" (buildProvider projectFile)
         Target.create $"PackProvider.{providerName}" (packProvider projectFile)
 
-        $"BuildProvider.{providerName}"
+        "DotnetBuild"
+        ==> $"BuildProvider.{providerName}"
         ==>! $"PackProvider.{providerName}"
 
         "DotnetRestore"
@@ -910,13 +911,6 @@ let initTargets () =
     ==> "GenerateAssemblyInfo"
     ==> "GitRelease"
     ==>! "Release"
-
-    "DotnetRestore"
-    ==> "BuildProviders"
-    ==> "PackProviders"
-    ==> "PublishToNuGet"
-    // ==> "GitHubRelease"
-    ==>! "Publish"
 
     "DotnetRestore"
     =?> ("CheckFormatCode", isCI.Value)

@@ -145,7 +145,7 @@ let mutable latestEntry =
 
 let mutable changelogBackupFilename = ""
 
-let publishUrl = $"https://nuget.pkg.github.com/{gitOwner}/index.json"
+let publishUrl = $"https://nuget.pkg.github.com/{gitOwner}"
 
 let enableCodeCoverage = environVarAsBoolOrDefault "ENABLE_COVERAGE" false
 
@@ -153,7 +153,9 @@ let githubToken = Environment.environVarOrNone "GITHUB_TOKEN"
 
 let nugetToken = Environment.environVarOrNone "GITHUB_TOKEN" // "NUGET_TOKEN"
 
-let commitHash = Environment.environVarOrNone "GITHUB_SHA"
+let githubSHA = Environment.environVarOrNone "GITHUB_SHA"
+
+let shortGitShubHA  =  githubSHA |> Option.map (fun sha -> sha.[..7])
 
 //-----------------------------------------------------------------------------
 // Helpers
@@ -648,7 +650,7 @@ let packProvider projectFile =
                                 Git.Information.getBranchName ""
                                 <> releaseBranch
                             )
-                            commitHash
+                            shortGitShubHA
 
             })
             projectFile
@@ -676,8 +678,7 @@ let dotnetPack ctx =
                             (fun _ ->
                                 Git.Information.getBranchName ""
                                 <> releaseBranch
-                            )
-                            commitHash
+                            ) shortGitShubHA
                     Common =
                         c.Common
                         |> DotNet.Options.withAdditionalArgs args
@@ -692,7 +693,7 @@ let sourceLinkTest _ =
 let publishToNuget _ =
     allPublishChecks ()
 
-    Paket.push (fun c -> {
+    Paket.push (fun (c: Paket.PaketPushParams) -> {
         c with
             ToolType = ToolType.CreateLocalTool()
             PublishUrl = publishUrl

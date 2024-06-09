@@ -145,7 +145,7 @@ let mutable latestEntry =
 
 let mutable changelogBackupFilename = ""
 
-let publishUrl = $"https://nuget.pkg.github.com/{gitOwner}/api/v2/package"
+let publishUrl = $"https://nuget.pkg.github.com/{gitOwner}/index.json"
 
 let enableCodeCoverage = environVarAsBoolOrDefault "ENABLE_COVERAGE" false
 

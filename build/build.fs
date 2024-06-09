@@ -155,7 +155,9 @@ let nugetToken = Environment.environVarOrNone "GITHUB_TOKEN" // "NUGET_TOKEN"
 
 let githubSHA = Environment.environVarOrNone "GITHUB_SHA"
 
-let shortGitShubHA  =  githubSHA |> Option.map (fun sha -> sha.[..7])
+let shortGitShubHA =
+    githubSHA
+    |> Option.map (fun sha -> sha.[..7])
 
 //-----------------------------------------------------------------------------
 // Helpers
@@ -678,7 +680,8 @@ let dotnetPack ctx =
                             (fun _ ->
                                 Git.Information.getBranchName ""
                                 <> releaseBranch
-                            ) shortGitShubHA
+                            )
+                            shortGitShubHA
                     Common =
                         c.Common
                         |> DotNet.Options.withAdditionalArgs args
@@ -690,19 +693,24 @@ let sourceLinkTest _ =
     !!distGlob
     |> Seq.iter (fun nupkg -> dotnet.sourcelink id (sprintf "test %s" nupkg))
 
+
 let publishToNuget _ =
     allPublishChecks ()
 
-    Paket.push (fun (c: Paket.PaketPushParams) -> {
-        c with
-            ToolType = ToolType.CreateLocalTool()
-            PublishUrl = publishUrl
-            WorkingDir = "dist"
-            ApiKey =
-                match nugetToken with
-                | Some s -> s
-                | _ -> c.ApiKey // assume paket-config was set properly
-    })
+    !!distGlob
+    |> Seq.iter (
+        DotNet.nugetPush (fun c -> {
+            c with
+                PushParams = {
+                    c.PushParams with
+                        ApiKey =
+                            match nugetToken with
+                            | Some s -> nugetToken
+                            | _ -> c.PushParams.ApiKey // assume paket-config was set properly
+                        Source = Some publishUrl
+                }
+        })
+    )
 
 let gitRelease _ =
     allReleaseChecks ()
@@ -861,6 +869,9 @@ let initTargets () =
 
         $"PackProvider.{providerName}"
         ==>! "PackProviders"
+
+        $"PackProvider.{providerName}"
+        ==>! "PublishToNuGet"
 
     )
 

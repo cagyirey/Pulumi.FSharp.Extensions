@@ -611,6 +611,7 @@ let generateAssemblyInfo _ =
          (getAssemblyInfoAttributes projectName))
 
     !!srcGlob
+    ++ providersGlob
     |> Seq.map getProjectDetails
     |> Seq.iter (fun (projFileName, _, folderName, attributes) ->
         match projFileName with
@@ -632,8 +633,6 @@ let generateAssemblyInfo _ =
                  </> "AssemblyInfo.vb")
                 attributes
     )
-
-
 let packProvider projectFile =
     fun (ctx: TargetParameter) ->
         let args = [ $"/p:VersionPrefix={PulumiExtensions.getProviderVersion projectFile}" ]
@@ -693,6 +692,20 @@ let sourceLinkTest _ =
     !!distGlob
     |> Seq.iter (fun nupkg -> dotnet.sourcelink id (sprintf "test %s" nupkg))
 
+let publishProvider packageName =
+    fun (_: TargetParameter) ->
+        let packageFile = 
+            !! (distDir </> $"{packageName}.*.nupkg")
+            |> Seq.exactlyOne
+        
+        Paket.push(fun pushParams ->
+            { pushParams with
+                ApiKey =
+                    match nugetToken with
+                    | Some s -> s
+                    | _ -> pushParams.ApiKey // assume paket-config was set properly
+                
+            })
 
 let publishToNuget _ =
     allPublishChecks ()
@@ -712,6 +725,33 @@ let publishToNuget _ =
         })
     )
 
+let paketUpdate _ =
+    failOnWrongBranch ()
+    failOnLocalBuild ()
+
+    let dependencies = (Paket.Dependencies.Locate ()).DependenciesFile
+    if Paket.UpdateProcess.Update(dependencies, Paket.UpdaterOptions.Default) then
+        let newBranch = $"paket-update-{Git.Information.getCurrentHash ()}"
+        let prTitle = $"Paket Update for {DateTime.Now}"
+
+        Git.Branches.checkoutNewBranch 
+            rootDirectory
+            (Git.Information.getBranchName rootDirectory)
+            newBranch
+
+        Git.Commit.exec rootDirectory prTitle
+
+        Git.Branches.pushBranch rootDirectory gitHubRepoUrl newBranch
+
+        let pr = Octokit.NewPullRequest(prTitle, newBranch, releaseBranch,Body = prTitle)
+        GitHub.createClientWithToken (Option.get githubToken)
+        |> GitHub.createPullRequest gitRepoName gitOwner pr
+        |> Async.RunSynchronously
+        |> Async.RunSynchronously
+        |> ignore
+    else
+        failwith "Paket update failed. Unable to create PR."
+
 let gitRelease _ =
     allReleaseChecks ()
 
@@ -720,14 +760,9 @@ let gitRelease _ =
     Git.Staging.stageFile "" "CHANGELOG.md"
     |> ignore
 
-    !!(rootDirectory
-       </> "src/**/AssemblyInfo.fs")
-    ++ (rootDirectory
-        </> "tests/**/AssemblyInfo.fs")
-    |> Seq.iter (
-        Git.Staging.stageFile ""
-        >> ignore
-    )
+    !!(rootDirectory </> "src/**/AssemblyInfo.fs")
+    ++ (rootDirectory </> "tests/**/AssemblyInfo.fs")
+    |> Seq.iter (Git.Staging.stageFile ""  >> ignore)
 
     let msg =
         sprintf "Bump version to %s\n\n%s" latestEntry.NuGetVersion releaseNotesGitCommitFormat
@@ -763,10 +798,8 @@ let githubRelease _ =
         gitOwner
         gitRepoName
         (Changelog.tagFromVersionNumber latestEntry.NuGetVersion)
-        (latestEntry.SemVer.PreRelease
-         <> None)
-        (releaseNotes
-         |> Seq.singleton)
+        (latestEntry.SemVer.PreRelease <> None)
+        (Seq.singleton releaseNotes)
     |> GitHub.uploadFiles files
     |> GitHub.publishDraft
     |> Async.RunSynchronously
@@ -835,8 +868,10 @@ let initTargets () =
     Target.create "GenerateAssemblyInfo" generateAssemblyInfo
     Target.create "DotnetPack" dotnetPack
     Target.create "PackProviders" ignore
+    Target.create "PushProviders" ignore
     Target.create "SourceLinkTest" sourceLinkTest
     Target.create "PublishToNuGet" publishToNuget
+    Target.create "PaketUpdate" paketUpdate
     Target.create "GitRelease" gitRelease
     Target.create "GitHubRelease" githubRelease
     Target.create "FormatCode" formatCode
@@ -854,12 +889,15 @@ let initTargets () =
         Target.create $"BuildProvider.{providerName}" (buildProvider projectFile)
         Target.create $"PackProvider.{providerName}" (packProvider projectFile)
 
+        Target.create $"PublishProvider.{providerName}" (publishProvider providerName)
+
         "Clean"
         ==>! $"PackProvider.{providerName}"
 
         "DotnetBuild"
         ==> $"BuildProvider.{providerName}"
-        ==>! $"PackProvider.{providerName}"
+        ==> $"PackProvider.{providerName}"
+        ==>! $"PublishProvider.{providerName}"
 
         "DotnetRestore"
         ==>! $"BuildProvider.{providerName}"
@@ -869,10 +907,6 @@ let initTargets () =
 
         $"PackProvider.{providerName}"
         ==>! "PackProviders"
-
-        $"PackProvider.{providerName}"
-        ==>! "PublishToNuGet"
-
     )
 
     //-----------------------------------------------------------------------------

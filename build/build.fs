@@ -868,7 +868,7 @@ let initTargets () =
     Target.create "GenerateAssemblyInfo" generateAssemblyInfo
     Target.create "DotnetPack" dotnetPack
     Target.create "PackProviders" ignore
-    Target.create "PushProviders" ignore
+    Target.create "PublishProviders" ignore
     Target.create "SourceLinkTest" sourceLinkTest
     Target.create "PublishToNuGet" publishToNuget
     Target.create "PaketUpdate" paketUpdate
@@ -907,6 +907,9 @@ let initTargets () =
 
         $"PackProvider.{providerName}"
         ==>! "PackProviders"
+
+        $"PublishProvider.{providerName}"
+        ==>! "PublishProviders"
     )
 
     //-----------------------------------------------------------------------------
@@ -969,6 +972,12 @@ let initTargets () =
     ==> "PublishToNuGet"
     // ==> "GitHubRelease"
     ==>! "Publish"
+
+    "DotnetRestore"
+    =?> ("CheckFormatCode", isCI.Value)
+    ==> "BuildProviders"
+    ==> "PackProviders"
+    ==>! "PublishProviders"
 
     "DotnetRestore"
     ==>! "WatchTests"

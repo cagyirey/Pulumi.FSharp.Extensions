@@ -24,12 +24,11 @@ jobs:
           global-json-file: global.json
           dotnet-version: |
             8.x
-      - name: publish
+      - name: Publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NUGET_TOKEN: ${{ secrets.GITHUB_TOKEN }} # this is intentional — we publish to github packages
           FAKE_DETAILED_ERRORS: true
           ENABLE_COVERAGE: false # AltCover doesn't work with Release builds, reports lower coverage than actual
         run: |
-          chmod +x ./build.sh
           ./build.sh Publish

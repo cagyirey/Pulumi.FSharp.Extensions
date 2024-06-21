@@ -218,13 +218,15 @@ module PulumiExtensions =
     let getExtensionName projectFile =
         (FileInfo projectFile).Name["Pulumi.FSharp.".Length .. ^".fsproj".Length]
 
-    let getProviderVersion providerName  = 
-        let dependencies =  Paket.Dependencies.Locate ()
+    let getProviderVersion providerName =
+        let dependencies = Paket.Dependencies.Locate()
         let providerNameOverride = Map.ofList [ "AzureNativeV2", "AzureNative" ]
-        let provider = 
+
+        let provider =
             providerNameOverride
             |> Map.tryFind providerName
             |> Option.defaultValue providerName
+
         dependencies
             .GetInstalledPackageModel(Some "Providers", $"Pulumi.{provider}")
             .PackageVersion.Normalize()
@@ -235,12 +237,16 @@ module PulumiExtensions =
 
     let isExtensionPublished provider =
         let lockfile = Paket.LockFile.LoadFrom "paket.lock"
+
         try
             let providerVersion = getProviderVersion provider
-            NuGet.NuGet.getPackage publishUrl $"Pulumi.FSharp.{provider}" providerVersion |> ignore
+
+            NuGet.NuGet.getPackage publishUrl $"Pulumi.FSharp.{provider}" providerVersion
+            |> ignore
+
             true // if we didn't throw in the previous step, this is a valid version.
-        with
-        | _ -> false
+        with _ ->
+            false
 
 
     let getProviderVersions (lock1: Paket.LockFile) (lock2: Paket.LockFile) =
@@ -657,7 +663,9 @@ let generateAssemblyInfo _ =
 
 let packProvider projectFile =
     fun (ctx: TargetParameter) ->
-        let args = [ $"/p:VersionPrefix={PulumiExtensions.getProviderVersionFromFsproj projectFile}" ]
+        let args = [
+            $"/p:VersionPrefix={PulumiExtensions.getProviderVersionFromFsproj projectFile}"
+        ]
 
         DotNet.pack
             (fun (c: DotNet.PackOptions) -> {
@@ -721,17 +729,19 @@ let publishProvider packageName =
                </> $"{packageName}.*.nupkg")
             |> Seq.exactlyOne
 
-        DotNet.nugetPush (fun c -> {
-            c with
-                PushParams = {
-                    c.PushParams with
-                        ApiKey =
-                            match nugetToken with
-                            | Some s -> nugetToken
-                            | _ -> c.PushParams.ApiKey // assume paket-config was set properly
-                        Source = Some publishUrl
-                }
-        }) nupkg
+        DotNet.nugetPush
+            (fun c -> {
+                c with
+                    PushParams = {
+                        c.PushParams with
+                            ApiKey =
+                                match nugetToken with
+                                | Some s -> nugetToken
+                                | _ -> c.PushParams.ApiKey // assume paket-config was set properly
+                            Source = Some publishUrl
+                    }
+            })
+            nupkg
 
 let publishToNuget _ =
     allPublishChecks ()
@@ -938,7 +948,10 @@ let initTargets () =
 
         Target.create $"BuildProvider.{extensionName}" (buildProvider projectFile)
         Target.create $"PackProvider.{extensionName}" (packProvider projectFile)
-        Target.create $"PublishProvider.{extensionName}" (publishProvider $"Pulumi.FSharp.{extensionName}")
+
+        Target.create
+            $"PublishProvider.{extensionName}"
+            (publishProvider $"Pulumi.FSharp.{extensionName}")
 
         "Clean"
         ==>! $"PackProvider.{extensionName}"

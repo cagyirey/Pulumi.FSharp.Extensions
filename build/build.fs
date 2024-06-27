@@ -145,16 +145,7 @@ let nugetToken = Environment.environVarOrNone "GITHUB_TOKEN" // "NUGET_TOKEN"
 let packageSource =
     global.Paket.PackageSources.NuGetV3 {
         Url = publishUrl
-        Authentication =
-            match githubToken with
-            | Some token ->
-
-                Paket.NetUtils.AuthProvider.ofUserPassword {
-                    Username = gitOwner
-                    Password = token
-                    Type = Paket.NetUtils.AuthType.Basic
-                }
-            | None -> Paket.AuthService.GetGlobalAuthenticationProvider publishUrl
+        Authentication = Paket.AuthService.GetGlobalAuthenticationProvider publishUrl
     }
 
 let githubSHA = Environment.environVarOrNone "GITHUB_SHA"

@@ -12,6 +12,7 @@ open Fake.Core.TargetOperators
 open Fake.Api
 open Fake.BuildServer
 open Argu
+open global.Paket.PackageSources
 
 let environVarAsBoolOrDefault varName defaultValue =
     let truthyConsts = [
@@ -132,11 +133,29 @@ let READMElink = Uri(Uri(gitHubRepoUrl), $"blob/{releaseBranch}/{readme}")
 
 let publishUrl = $"https://nuget.pkg.github.com/{gitOwner}/index.json"
 
+let packagesUrl = $"https://nuget.pkg.github.com/{gitOwner}/packages"
+
+
 let enableCodeCoverage = environVarAsBoolOrDefault "ENABLE_COVERAGE" false
 
 let githubToken = Environment.environVarOrNone "GITHUB_TOKEN"
 
 let nugetToken = Environment.environVarOrNone "GITHUB_TOKEN" // "NUGET_TOKEN"
+
+let packageSource =
+    global.Paket.PackageSources.NuGetV3 {
+        Url = publishUrl
+        Authentication =
+            match githubToken with
+            | Some token ->
+
+                Paket.NetUtils.AuthProvider.ofUserPassword {
+                    Username = gitOwner
+                    Password = token
+                    Type = Paket.NetUtils.AuthType.Basic
+                }
+            | None -> Paket.AuthService.GetGlobalAuthenticationProvider publishUrl
+    }
 
 let githubSHA = Environment.environVarOrNone "GITHUB_SHA"
 
@@ -253,17 +272,22 @@ module PulumiExtensions =
 module NuGet =
     let isPublished project =
         let projectFile = FileInfo project
+
         let changelog: Changelog.Changelog =
             projectFile.DirectoryName
             </> "CHANGELOG.md"
             |> Changelog.load
 
-        let packageInfo =
-            Path.GetFileNameWithoutExtension project
-            |> NuGet.NuGet.getLatestPackage publishUrl
+        Paket.Dependencies.FindPackageVersions(
+            rootDirectory,
+            [ packageSource ],
+            System.IO.Path.GetFileNameWithoutExtension project
+        )
+        |> Set.ofArray
+        |> Set.map (SemVer.parse)
+        |> Set.contains changelog.LatestEntry.SemVer
+        |> not
 
-        (SemVer.parse packageInfo.Version) = changelog.LatestEntry.SemVer
-        
 module dotnet =
     let watch cmdParam program args =
         DotNet.exec cmdParam (sprintf "watch %s" program) args
@@ -412,11 +436,15 @@ let dotnetBuild project =
             project
 
 let buildCore =
-    srcDir </> "Pulumi.FSharp.Core.fsproj"
+    srcDir
+    </> "Pulumi.FSharp.Core"
+    </> "Pulumi.FSharp.Core.fsproj"
     |> dotnetBuild
 
 let buildMyriadExtension =
-    srcDir </> "Pulumi.FSharp.Myriad.fsproj"
+    srcDir
+    </> "Pulumi.FSharp.Myriad"
+    </> "Pulumi.FSharp.Myriad.fsproj"
     |> dotnetBuild
 
 let fsharpAnalyzers _ =
@@ -567,9 +595,9 @@ let packProvider projectFile =
             })
             projectFile
 
-let dotnetPack ctx =
-    !!srcGlob
-    |> Seq.iter (fun project ->
+let dotnetPack project =
+
+    fun ctx ->
         let changelog =
             (FileInfo project).DirectoryName
             </> "CHANGELOG.md"
@@ -604,7 +632,18 @@ let dotnetPack ctx =
                         |> DotNet.Options.withAdditionalArgs args
             })
             project
-    )
+
+let packCore =
+    srcDir
+    </> "Pulumi.FSharp.Core"
+    </> "Pulumi.FSharp.Core.fsproj"
+    |> dotnetPack
+
+let packExtension =
+    srcDir
+    </> "Pulumi.FSharp.Myriad"
+    </> "Pulumi.FSharp.Myriad.fsproj"
+    |> dotnetPack
 
 let sourceLinkTest _ =
     !!distGlob
@@ -742,12 +781,14 @@ let initTargets () =
 
     Target.create "DotnetTest" dotnetTest
     Target.create "WatchTests" watchTests
-    
+
     Target.create "FSharpAnalyzers" fsharpAnalyzers
     Target.create "GenerateCoverageReport" generateCoverageReport
     Target.create "ShowCoverageReport" showCoverageReport
 
-    Target.create "DotnetPack" dotnetPack
+    Target.create "PackCore" packCore
+    Target.create "PackExtension" packExtension
+    Target.create "DotnetPack" ignore
     Target.create "PackProviders" ignore
     Target.create "PublishProviders" ignore
     Target.create "SourceLinkTest" sourceLinkTest
@@ -794,6 +835,21 @@ let initTargets () =
     // Target Dependencies
     //-----------------------------------------------------------------------------
 
+
+    let shouldPublishCore =
+        NuGet.isPublished (
+            srcDir
+            </> "Pulumi.FSharp.Core"
+            </> "Pulumi.FSharp.Core.fsproj"
+        )
+
+    let shouldPublishExtension =
+        NuGet.isPublished (
+            srcDir
+            </> "Pulumi.FSharp.Myriad"
+            </> "Pulumi.FSharp.Myriad.fsproj"
+        )
+
     // Only call Clean if DotnetPack was in the call chain
     // Ensure Clean is called before DotnetRestore
     "Clean"
@@ -802,32 +858,34 @@ let initTargets () =
     "Clean"
     ==>! "DotnetPack"
 
-    "DotnetBuild"
-    ==>! "BuildProviders"
+    "Clean"
+    ==>! "PackCore"
+
+    "Clean"
+    ==>! "PackExtension"
 
     "DotnetTest"
     ==> "GenerateCoverageReport"
     ==>! "ShowCoverageReport"
 
-    if NuGet.isPublished (srcDir </> "Pulumi.FSharp.Myriad" </> "Pulumi.FSharp.Myriad.fsproj") then
-        "DotnetRestore"
-        =?> ("CheckFormatCode", isCI.Value)
-        ==> "BuildMyriadExtension"
-        ==> "DotnetTest"
-        ==> "DotnetPack"
-        ==> "PublishToNuGet"
-        ==>! "Publish"
-
-    if NuGet.isPublished (srcDir </> "Pulumi.FSharp.Core" </> "Pulumi.FSharp.Core.fsproj") then
-        "DotnetRestore"
-        =?> ("CheckFormatCode", isCI.Value)
-        ==> "BuildCore"
-        ==> "DotnetTest"
-        ==> "DotnetPack"
-        ==> "PublishToNuGet"
-        ==>! "Publish"
+    "DotnetRestore"
+    =?> ("CheckFormatCode", isCI.Value)
+    =?> ("BuildCore", shouldPublishCore)
+    ==> "DotnetTest"
+    =?> ("PackCore", shouldPublishCore)
+    ==> "PublishToNuGet"
+    ==>! "Publish"
 
     "DotnetRestore"
+    =?> ("CheckFormatCode", isCI.Value)
+    =?> ("BuildMyriadExtension", shouldPublishExtension)
+    ==> "DotnetTest"
+    =?> ("PackExtension", shouldPublishExtension)
+    ==> "PublishToNuGet"
+    ==>! "Publish"
+
+    "DotnetRestore"
+    ==> "BuildMyriadExtension"
     ==> "BuildProviders"
     ==> "PackProviders"
     ==>! "PublishProviders"

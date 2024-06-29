@@ -20,7 +20,8 @@ jobs:
       - name: Add Paket credentials
         run: |
           dotnet tool restore
-          dotnet paket config add-credentials https://nuget.pkg.github.com --username $GITHUB_ACTOR --password GITHUB_TOKEN --authtype basic --verify
+          paket config add-credentials https://nuget.pkg.github.com --username $GITHUB_ACTOR --password $GITHUB_TOKEN --authtype basic --verify
+          cat ~/.config/Paket/paket.config
       - name: Build providers
         env:
           FAKE_DETAILED_ERRORS: true

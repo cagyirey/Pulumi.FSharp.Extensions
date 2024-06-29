@@ -148,11 +148,7 @@ let packageSource =
         Authentication =
             match githubToken with
             | Some token ->
-                Paket.NetUtils.AuthProvider.ofUserPassword {
-                    Username = Fake.BuildServer.GitHubActions.Environment.Actor
-                    Password = token
-                    Type = Paket.NetUtils.AuthType.Basic
-                }
+                Paket.NetUtils.AuthProvider.ofAuth (Paket.NetUtils.Token token)
             | None -> Paket.AuthService.GetGlobalAuthenticationProvider publishUrl
     }
 

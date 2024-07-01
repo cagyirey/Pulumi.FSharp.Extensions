@@ -814,13 +814,13 @@ let initTargets () =
         ==> $"PackProvider.{providerName}"
         ==>! $"PublishProvider.{providerName}"
 
+        $"BuildProvider.{providerName}"
+        ==>! "BuildProviders"
+
+        $"PackProvider.{providerName}"
+        ==>! "PackProviders"
+
         if not (PulumiExtensions.isProviderPublished providerName) then
-            $"BuildProvider.{providerName}"
-            ==>! "BuildProviders"
-
-            $"PackProvider.{providerName}"
-            ==>! "PackProviders"
-
             $"PublishProvider.{providerName}"
             ==>! "PublishProviders"
     )

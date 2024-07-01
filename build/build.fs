@@ -247,11 +247,12 @@ module PulumiExtensions =
         |> getProviderVersion
 
     let isProviderPublished provider =
-        Paket.Dependencies.FindPackageVersions(
-            rootDirectory,
-            [ githubPackageSource ],
-            $"Pulumi.FSharp.{provider}"
-        )
+        try
+            Paket.Dependencies.FindPackageVersions(
+                rootDirectory,
+                [ githubPackageSource ],
+                $"Pulumi.FSharp.{provider}")
+        with e -> Array.empty
         |> Set.ofArray
         |> Set.map (SemVer.parse)
         |> Set.contains (

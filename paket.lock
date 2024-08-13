@@ -939,7 +939,7 @@ NUGET
   remote: https://api.nuget.org/v3/index.json
     Ben.Demystifier (0.4.1)
       System.Reflection.Metadata (>= 5.0)
-    FSharp.Core (8.0.301)
+    FSharp.Core (8.0.400)
     Glob (1.1.9)
     Google.Protobuf (3.27.3)
     Grpc.AspNetCore.Server (2.65)

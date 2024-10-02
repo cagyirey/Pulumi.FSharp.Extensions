@@ -314,7 +314,8 @@ let createTypes (schema : JsonValue) =
             | a  -> a |> List.collect (fun refType ->
                 match refType with
                 | ExistsInCI refTypes -> refTypes
-                | GetCI allTypes typeJson -> typeJson |> getAllNestedTypes (refType :: refTypes)
+                | GetCI allTypes typeJson
+                | GetCI resourceTypes typeJson -> typeJson |> getAllNestedTypes (refType :: refTypes)
                 | _ -> failwith "Referenced type does not exist in the Pulumi schema resources or types"
                 )
         )

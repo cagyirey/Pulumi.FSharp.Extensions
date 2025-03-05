@@ -37,7 +37,7 @@ let getTarget args =
     | _ -> "Default"
 
 let getProjectFile () =
-    !! "**/Pulumi.FSharp.Core.fsproj"
+    !!"**/Pulumi.FSharp.Core.fsproj"
     |> Seq.head
 
 Target.create
@@ -102,7 +102,7 @@ Target.create
                 }
         }
 
-        !! "**/Pulumi.FSharp.Core.*.nupkg"
+        !!"**/Pulumi.FSharp.Core.*.nupkg"
         |> Seq.exactlyOne
         |> DotNet.nugetPush pushOptions
     )

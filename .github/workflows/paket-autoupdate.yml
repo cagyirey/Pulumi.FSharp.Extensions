@@ -19,7 +19,7 @@ jobs:
         with:
           global-json-file: global.json
           dotnet-version: |
-            8.x
+            9.x
       # https://github.com/orgs/community/discussions/26560#discussioncomment-3531273
       - name: Configure Git
         run: |

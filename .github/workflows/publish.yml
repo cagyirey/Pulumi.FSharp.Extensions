@@ -23,8 +23,8 @@ jobs:
         with:
           global-json-file: global.json
           dotnet-version: |
-            9.x
             6.x
+            9.x
       - name: Publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

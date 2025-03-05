@@ -14,7 +14,8 @@ jobs:
         with:
           global-json-file: global.json
           dotnet-version: |
-            8.x
+            9.x
+            6.x
       - name: Build providers
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

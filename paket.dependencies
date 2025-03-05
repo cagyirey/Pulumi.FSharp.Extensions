@@ -64,7 +64,7 @@ group Build
   nuget Microsoft.Build.Framework 17.3.2
   nuget Microsoft.Build.Tasks.Core 17.3.2
   nuget Microsoft.Build.Utilities.Core 17.3.2
-  nuget Paket.Core ~> 8
+  nuget Paket.Core ~> 9
 
 group Analyzers
   source https://www.nuget.org/api/v2

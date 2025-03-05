@@ -1,0 +1,14 @@
+type project
+id Pulumi.FSharp.DigitalOcean
+description F# wrappers for Pulumi.DigitalOcean
+authors Cagyirey
+projectUrl https://github.com/cagyirey/Pulumi.FSharp.Extensions
+licenseExpression MIT
+tags fsharp pulumi digitalocean
+
+dependencies
+  Pulumi.FSharp ~> LOCKED-Providers:Minor
+  Pulumi.FSharp.Core ~> LOCKED-Providers:Minor
+  Pulumi.DigitalOcean = LOCKEDVERSION
+excludedgroups
+  Myriad

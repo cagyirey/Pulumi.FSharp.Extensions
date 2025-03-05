@@ -1,0 +1,14 @@
+type project
+id Pulumi.FSharp.Random
+description F# wrappers for Pulumi.Random
+authors Cagyirey
+projectUrl https://github.com/cagyirey/Pulumi.FSharp.Extensions
+licenseExpression MIT
+tags fsharp pulumi random
+
+dependencies
+  Pulumi.FSharp ~> LOCKED-Providers:Minor
+  Pulumi.FSharp.Core ~> LOCKED-Providers:Minor
+  Pulumi.Random = LOCKEDVERSION
+excludedgroups
+  Myriad

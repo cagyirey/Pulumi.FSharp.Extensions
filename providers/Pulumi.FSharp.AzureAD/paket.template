@@ -1,0 +1,14 @@
+type project
+id Pulumi.FSharp.AzureAD
+description F# wrappers for Pulumi.AzureAD
+authors Cagyirey
+projectUrl https://github.com/cagyirey/Pulumi.FSharp.Extensions
+licenseExpression MIT
+tags fsharp pulumi azuread
+
+dependencies
+  Pulumi.FSharp ~> LOCKED-Providers:Minor
+  Pulumi.FSharp.Core ~> LOCKED-Providers:Minor
+  Pulumi.AzureAD = LOCKEDVERSION
+excludedgroups
+  Myriad

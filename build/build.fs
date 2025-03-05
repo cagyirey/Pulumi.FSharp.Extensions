@@ -13,6 +13,7 @@ open Fake.IO
 open Fake.IO.FileSystemOperators
 open Fake.IO.Globbing.Operators
 open Fake.Tools
+open Fake.DotNet
 open global.Paket.PackageSources
 
 
@@ -511,7 +512,7 @@ let dotnetTest ctx =
 
 let generateCoverageReport _ =
     let coverageReports =
-        !! "tests/**/coverage*.xml"
+        !!"tests/**/coverage*.xml"
         |> String.concat ";"
 
     let sourceDirs =
@@ -575,6 +576,28 @@ let watchTests _ =
 
     cancelEvent.Cancel <- true
 
+let paketPackProvider projectFile =
+    fun (ctx: TargetParameter) ->
+        let version = PulumiExtensions.getProviderVersionFromFsproj projectFile
+        let providerDir = Path.GetDirectoryName(projectFile)
+        let templateFile = Path.Combine(providerDir, "paket.template")
+
+        // Only proceed if template file exists
+        if File.Exists(templateFile) then
+            Paket.pack (fun p -> {
+                p with
+                    OutputPath = distDir
+                    WorkingDir = providerDir
+                    Version = version
+                    TemplateFile = templateFile
+                    LockDependencies = true // Use exact versions from paket.lock
+                    SpecificVersions = [] // No need to override versions
+            })
+        else
+            Trace.traceErrorfn "Template file not found for %s" projectFile
+            failwithf "Template file not found: %s" templateFile
+
+// Keep the original packProvider for backward compatibility
 let packProvider projectFile =
     fun (ctx: TargetParameter) ->
         let args = [
@@ -825,7 +848,17 @@ let initTargets () =
         let providerName = PulumiExtensions.getProviderName projectFile
 
         Target.create $"BuildProvider.{providerName}" (buildProvider projectFile)
-        Target.create $"PackProvider.{providerName}" (packProvider projectFile)
+        // Use the new paketPackProvider function if the template file exists, otherwise fall back to the original packProvider
+        let templateFile =
+            Path.Combine(Path.GetDirectoryName(projectFile), "paket.template")
+
+        let packFunction =
+            if File.Exists(templateFile) then
+                paketPackProvider
+            else
+                packProvider
+
+        Target.create $"PackProvider.{providerName}" (packFunction projectFile)
 
         Target.create
             $"PublishProvider.{providerName}"

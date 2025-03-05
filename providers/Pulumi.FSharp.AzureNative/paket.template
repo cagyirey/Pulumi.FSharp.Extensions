@@ -1,0 +1,14 @@
+type project
+id Pulumi.FSharp.AzureNative
+description F# wrappers for Pulumi.AzureNative
+authors Cagyirey
+projectUrl https://github.com/cagyirey/Pulumi.FSharp.Extensions
+licenseExpression MIT
+tags fsharp pulumi azurenative
+
+dependencies
+  Pulumi.FSharp ~> LOCKED-Providers:Minor
+  Pulumi.FSharp.Core ~> LOCKED-Providers:Minor
+  Pulumi.AzureNative = LOCKEDVERSION
+excludedgroups
+  Myriad

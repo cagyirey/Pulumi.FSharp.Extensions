@@ -365,3 +365,4 @@ docs/
 providers/Pulumi.FSharp.*/*.json
 providers/Pulumi.FSharp.*/Generated.fs
 .DS_Store
+dist/

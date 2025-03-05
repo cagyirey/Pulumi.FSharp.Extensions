@@ -1,0 +1,14 @@
+type project
+id Pulumi.FSharp.Aws
+description F# wrappers for Pulumi.Aws
+authors Cagyirey
+projectUrl https://github.com/cagyirey/Pulumi.FSharp.Extensions
+licenseExpression MIT
+tags fsharp pulumi aws
+
+dependencies
+  Pulumi.FSharp ~> LOCKED-Providers:Minor
+  Pulumi.FSharp.Core ~> LOCKED-Providers:Minor
+  Pulumi.Aws = LOCKEDVERSION
+excludedgroups
+  Myriad
